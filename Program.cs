@@ -106,6 +106,7 @@ builder.Services.AddAuthorization();
 // Dependency Injection
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUsersService, UsersService>();
+builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 
 var app = builder.Build();
 

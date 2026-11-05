@@ -1,83 +1,139 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using HelpDeskSystem.DTOs.Departments;
+using HelpDeskSystem.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace HelpDeskSystem.Controllers
+namespace HelpDeskSystem.Controllers;
+
+[ApiController]
+[Route("api/departments")]
+[Authorize]
+public sealed class DepartmentsController : ControllerBase
 {
-    public class DepartmentsController : Controller
+    private readonly IDepartmentsService _departmentsService;
+
+    public DepartmentsController(IDepartmentsService departmentsService)
+    { 
+        _departmentsService = departmentsService;
+    }
+
+    // GET: api/departments
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] bool includeInactive = false,
+        CancellationToken cancellationToken = default)
     {
-        // GET: DepartmentsController
-        public ActionResult Index()
+        var departments = await _departmentsService.GetAllAsync(
+            includeInactive,
+            cancellationToken);
+
+        return Ok(departments);
+    }
+
+    // GET: api/departments/{id}
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var department = await _departmentsService.GetByIdAsync(
+            id,
+            cancellationToken);
+
+        if (department is null)
         {
-            return View();
+            return NotFound(new
+            { 
+                message = "Department not found."
+            });
         }
 
-        // GET: DepartmentsController/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
+        return Ok(department);
+    }
 
-        // GET: DepartmentsController/Create
-        public ActionResult Create()
+    // POST: api/departments
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Create(
+        [FromBody] CreateDepartmentRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try 
         {
-            return View();
-        }
+            var department = await _departmentsService.CreateAsync(
+                request,
+                cancellationToken);
 
-        // POST: DepartmentsController/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = department.Id },
+                department);
+        }
+        catch (InvalidOperationException ex)
         {
-            try
+            return Conflict(new
             {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
+                message = ex.Message
+            });
+        }
+    }
+
+    // PUT: api/departments/{id}
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromBody] UpdateDepartmentRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var department = await _departmentsService.UpdateAsync(
+                id,
+                request,
+                cancellationToken);
+
+            if (department is null)
             {
-                return View();
+                return NotFound(new
+                {
+                    message = "Department not found."
+                });
             }
+
+            return Ok(department);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new 
+            { 
+                message = ex.Message
+            });
+        }
+    }
+
+    // PATCH: api/departments/{id}/status
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateStatus(
+        Guid id,
+        [FromBody] UpdateDepartmentStatusRequestDto request,
+        CancellationToken cancellationToken) 
+    {
+        var updated = await _departmentsService.UpdateStatusAsync(
+            id,
+            request,
+            cancellationToken);
+
+        if (!updated)
+        {
+            return NotFound(new 
+            { 
+                message = "Department not found."
+            });
         }
 
-        // GET: DepartmentsController/Edit/5
-        public ActionResult Edit(int id)
-        {
-            return View();
-        }
-
-        // POST: DepartmentsController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
-
-        // GET: DepartmentsController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
-
-        // POST: DepartmentsController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+        return NoContent();
     }
 }

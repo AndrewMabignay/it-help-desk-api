@@ -17,7 +17,7 @@ public class UserProfile
     public string? ProfilePictureUrl { get; set; }
 
     // Department Relationship
-    public int? DepartmentId { get; set; }
+    public Guid? DepartmentId { get; set; }
 
     public Department? Department { get; set; }
 
