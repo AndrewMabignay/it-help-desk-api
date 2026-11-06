@@ -59,7 +59,7 @@ public sealed class DepartmentsController : ControllerBase
         [FromBody] CreateDepartmentRequestDto request,
         CancellationToken cancellationToken)
     {
-        try 
+        try
         {
             var department = await _departmentsService.CreateAsync(
                 request,
@@ -70,12 +70,13 @@ public sealed class DepartmentsController : ControllerBase
                 new { id = department.Id },
                 department);
         }
+        catch (KeyNotFoundException ex) 
+        {
+            return NotFound(new { message = ex.Message });
+        }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new
-            {
-                message = ex.Message
-            });
+            return Conflict(new { message = ex.Message });
         }
     }
 
@@ -104,12 +105,13 @@ public sealed class DepartmentsController : ControllerBase
 
             return Ok(department);
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new 
-            { 
-                message = ex.Message
-            });
+            return Conflict(new { message = ex.Message });
         }
     }
 

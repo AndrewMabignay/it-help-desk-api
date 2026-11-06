@@ -69,15 +69,13 @@ public sealed class DepartmentsService : IDepartmentsService
     {
         var name = request.Name.Trim();
 
+        // Check for an existing department.
         var existingDepartment = await _dbContext.Departments
             .AnyAsync(
                 department => department.Name == name,
                 cancellationToken);
 
-        if (existingDepartment)
-        {
-            throw new InvalidOperationException("Department name already exists.");
-        }
+        if (existingDepartment) throw new InvalidOperationException("Department name already exists.");
 
         var department = new Department
         {
@@ -107,10 +105,8 @@ public sealed class DepartmentsService : IDepartmentsService
                 department => department.Id == id,
                 cancellationToken);
 
-        if (department is null)
-        {
-            return null;
-        }
+        if (department is null) return null;
+        
 
         var name = request.Name.Trim();
 
