@@ -15,7 +15,7 @@ public class Ticket
     public string Description { get; set; } = string.Empty;
 
     // Foreign Keys
-    public int CategoryId { get; set; }
+    public Guid CategoryId { get; set; }
 
     public int PriorityId { get; set; }
 

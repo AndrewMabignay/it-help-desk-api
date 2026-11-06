@@ -1,83 +1,146 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using HelpDeskSystem.DTOs.Categories;
+using HelpDeskSystem.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace HelpDeskSystem.Controllers
+namespace HelpDeskSystem.Controllers;
+
+[ApiController]
+[Route("api/categories")]
+[Authorize]
+public sealed class CategoriesController : ControllerBase
 {
-    public class CategoriesController : Controller
+    private readonly ICategoryService _categoriesService;
+
+    public CategoriesController(ICategoryService categoriesService)
     {
-        // GET: CategoriesController
-        public ActionResult Index()
-        {
-            return View();
-        }
+        _categoriesService = categoriesService;
+    }
 
-        // GET: CategoriesController/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
+    // GET: api/categories
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] bool includeInactive = false,
+        CancellationToken cancellationToken = default)
+    {
+        var categories = await _categoriesService.GetAllAsync(
+            pageNumber,
+            pageSize,
+            searchTerm,
+            includeInactive,
+            cancellationToken);
 
-        // GET: CategoriesController/Create
-        public ActionResult Create()
-        {
-            return View();
-        }
+        return Ok(categories);
+    }
 
-        // POST: CategoriesController/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+    // GET: api/categories/{id}
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var category = await _categoriesService.GetByIdAsync(
+            id,
+            cancellationToken);
+
+        if (category is null)
         {
-            try
+            return NotFound(new
             {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
+                message = "Category not found."
+            });
         }
 
-        // GET: CategoriesController/Edit/5
-        public ActionResult Edit(int id)
+        return Ok(category);
+    }
+
+    // POST: api/categories
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Create(
+        [FromBody] CreateCategoryRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
         {
-            return View();
+            var category = await _categoriesService.CreateAsync(
+                request,
+                cancellationToken);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = category.Id },
+                category);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // PUT: api/categories/{id}
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromBody] UpdateCategoryRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var category = await _categoriesService.UpdateAsync(
+                id,
+                request,
+                cancellationToken);
+
+            if (category is null)
+            {
+                return NotFound(new
+                {
+                    message = "Category not found."
+                });
+            }
+
+            return Ok(category);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // PATCH: api/categories/{id}/status
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateStatus(
+        Guid id,
+        [FromBody] UpdateCategoryStatusRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var updated = await _categoriesService.UpdateStatusAsync(
+            id,
+            request,
+            cancellationToken);
+
+        if (!updated)
+        {
+            return NotFound(new
+            {
+                message = "Category not found."
+            });
         }
 
-        // POST: CategoriesController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
-
-        // GET: CategoriesController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
-
-        // POST: CategoriesController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+        return NoContent();
     }
 }
