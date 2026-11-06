@@ -2,7 +2,7 @@
 
 public class UserProfile
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     // Foreign Key
     public string UserId { get; set; } = string.Empty;

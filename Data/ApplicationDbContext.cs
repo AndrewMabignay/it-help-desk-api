@@ -69,6 +69,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(up => up.JobTitle)
                 .HasMaxLength(199);
+
+            entity.Property(up => up.PhoneNumber)
+                .HasMaxLength(20);
+
+            entity.Property(up => up.ProfilePictureUrl)
+                .HasMaxLength(500);
         });
 
         // Ticket Configuration
