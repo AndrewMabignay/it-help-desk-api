@@ -109,6 +109,7 @@ builder.Services.AddScoped<IUsersService, UsersService>();
 builder.Services.AddScoped<IDepartmentsService, DepartmentsService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IPriorityService, PriorityService>();
 
 var app = builder.Build();
 

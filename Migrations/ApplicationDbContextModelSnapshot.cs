@@ -154,17 +154,18 @@ namespace HelpDeskSystem.Migrations
 
             modelBuilder.Entity("HelpDeskSystem.Models.Entities.Priority", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Level")
                         .HasColumnType("int");
@@ -175,9 +176,6 @@ namespace HelpDeskSystem.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("isActive")
-                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
@@ -245,8 +243,8 @@ namespace HelpDeskSystem.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("PriorityId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PriorityId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("RequesterId")
                         .IsRequired()
