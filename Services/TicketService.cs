@@ -66,7 +66,7 @@ public sealed class TicketService : ITicketService
             tickets = tickets.Where(t => t.AssignedToId == query.AssignedToId);
 
         // Total Count
-        var totalCount = await tickets.CountAsync();
+        var totalCount = await tickets.CountAsync(cancellationToken);
 
         // Pagination
         var pageNumber = Math.Max(query.PageNumber, 1);

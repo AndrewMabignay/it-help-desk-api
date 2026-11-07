@@ -12,7 +12,7 @@
         // Comment Information
         public string Comment { get; set; } = string.Empty;
 
-        public bool IsInterval { get; set; } = false;
+        public bool IsInternal { get; set; } = false;
 
         // Navigation Properties
         public Ticket Ticket { get; set; } = null!;

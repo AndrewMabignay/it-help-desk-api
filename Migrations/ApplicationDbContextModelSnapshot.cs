@@ -390,7 +390,7 @@ namespace HelpDeskSystem.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsInterval")
+                    b.Property<bool>("IsInternal")
                         .HasColumnType("bit");
 
                     b.Property<Guid>("TicketId")

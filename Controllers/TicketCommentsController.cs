@@ -1,83 +1,65 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using HelpDeskSystem.DTOs.TicketComments;
+using HelpDeskSystem.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-namespace HelpDeskSystem.Controllers
+namespace HelpDeskSystem.Controllers;
+
+[ApiController]
+[Route("api/tickets/{ticketId:guid}/comments")]
+[Authorize]
+public sealed class TicketCommentsController : ControllerBase
 {
-    public class TicketCommentsController : Controller
+    private readonly ITicketCommentService _ticketCommentService;
+
+    public TicketCommentsController(ITicketCommentService ticketCommentService)
     {
-        // GET: TicketCommentsController
-        public ActionResult Index()
-        {
-            return View();
-        }
+        _ticketCommentService = ticketCommentService;
+    }
 
-        // GET: TicketCommentsController/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
+    // GET: api/tickets/{ticketId}/comments
+    [HttpGet]
+    public async Task<IActionResult> GetByTicketId(
+        Guid ticketId,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // GET: TicketCommentsController/Create
-        public ActionResult Create()
-        {
-            return View();
-        }
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
 
-        // POST: TicketCommentsController/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+        var comments = await _ticketCommentService.GetByTicketIdAsync(
+            ticketId,
+            userId,
+            cancellationToken);
 
-        // GET: TicketCommentsController/Edit/5
-        public ActionResult Edit(int id)
-        {
-            return View();
-        }
+        return Ok(comments);
+    }
 
-        // POST: TicketCommentsController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+    // POST: api/tickets/{ticketId}/comments
+    [HttpPost]
+    public async Task<IActionResult> Create(
+        Guid ticketId,
+        [FromBody] CreateTicketCommentDto dto,
+        CancellationToken cancellationToken)
+    {
+        if (ticketId != dto.TicketId)
+            return BadRequest("Ticket ID mismatch.");
 
-        // GET: TicketCommentsController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // POST: TicketCommentsController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var comment = await _ticketCommentService.CreateAsync(
+            dto,
+            userId,
+            cancellationToken);
+
+        return CreatedAtAction(
+            nameof(GetByTicketId),
+            new { ticketId },
+            comment);
     }
 }
