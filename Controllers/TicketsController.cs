@@ -1,83 +1,191 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using HelpDeskSystem.DTOs.Tickets;
+using HelpDeskSystem.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-namespace HelpDeskSystem.Controllers
+namespace HelpDeskSystem.Controllers;
+
+[ApiController]
+[Route("api/tickets")]
+[Authorize]
+public sealed class TicketsController : ControllerBase
 {
-    public class TicketsController : Controller
+    private readonly ITicketService _ticketService;
+
+    public TicketsController(ITicketService ticketService)
     {
-        // GET: TicketsController
-        public ActionResult Index()
-        {
-            return View();
-        }
+        _ticketService = ticketService;
+    }
 
-        // GET: TicketsController/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
+    // GET: api/tickets
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] TicketQueryDto query,
+        CancellationToken cancellationToken) 
+    {
+        var tickets = await _ticketService.GetAllAsync(
+            query,
+            cancellationToken);
 
-        // GET: TicketsController/Create
-        public ActionResult Create()
-        {
-            return View();
-        }
+        return Ok(tickets);
+    }
 
-        // POST: TicketsController/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+    // GET: api/tickets/{id}
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var ticket = await _ticketService.GetByIdAsync(
+            id,
+            cancellationToken);
+
+        if (ticket is null)
         {
-            try
+            return NotFound(new 
             {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
+                message = "Ticket not found."
+            });
         }
 
-        // GET: TicketsController/Edit/5
-        public ActionResult Edit(int id)
+        return Ok(ticket);
+    }
+
+    // POST: api/tickets
+    [HttpPost]
+    [Authorize(Roles = "Admin,Employee")]
+    public async Task<IActionResult> Create(
+        [FromBody] CreateTicketRequestDto request,
+        CancellationToken cancellationToken) 
+    {
+        try
         {
-            return View();
+            var requesterId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(requesterId))
+            {
+                return Unauthorized();
+            }
+
+            var ticket = await _ticketService.CreateAsync(
+                request, 
+                requesterId, 
+                cancellationToken);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = ticket.Id },
+                ticket
+            );
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // PUT: api/tickets/{id}
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,Employee")]
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromBody] UpdateTicketRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try 
+        {
+            var ticket = await _ticketService.UpdateAsync(
+               id,
+               request,
+               cancellationToken);
+
+            if (ticket == null)
+            {
+                return NotFound(new
+                {
+                    message = "Ticket not found."
+                });
+            }
+
+            return Ok(ticket);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // PUT: api/tickets/{id}/assign
+    [HttpPut("{id:guid}/assign")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Assign(
+        Guid id,
+        [FromBody] AssignTicketRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        try 
+        {
+            var result = await _ticketService.AssignAsync(
+                id,
+                request,
+                cancellationToken);
+
+            if (!result)
+            {
+                return NotFound(new
+                {
+                    message = "Ticket not found."
+                });
+            }
+
+            return Ok(new
+            {
+                message = "Ticket successfully assigned."
+            });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // PATCH: api/tickets/{id}/status
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Roles = "Admin,ITStaff")]
+    public async Task<IActionResult> UpdateStatus(
+        Guid id,
+        [FromBody] UpdateTicketStatusRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var updated = await _ticketService.UpdateStatusAsync(
+            id, 
+            request,
+            cancellationToken);
+
+        if (!updated)
+        {
+            return NotFound(new
+            {
+                message = "Ticket not found."
+            });
         }
 
-        // POST: TicketsController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
+        return Ok(new
         {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
-
-        // GET: TicketsController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
-
-        // POST: TicketsController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+            message = "Ticket status successfully updated."
+        });
     }
 }

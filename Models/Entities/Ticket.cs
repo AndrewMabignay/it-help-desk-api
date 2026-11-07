@@ -5,7 +5,7 @@ namespace HelpDeskSystem.Models.Entities;
 
 public class Ticket
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     // Ticket Information
     public string TicketNumber { get; set; } = string.Empty;

@@ -6,7 +6,7 @@ public class TicketResolution
 {
     public int Id { get; set; }
     
-    public int TicketId { get; set; }
+    public Guid TicketId { get; set; }
     
     public string ResolvedById { get; set; } = string.Empty;
 

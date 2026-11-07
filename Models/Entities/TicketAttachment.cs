@@ -5,7 +5,7 @@ public class TicketAttachment
     public int Id { get; set; }
 
     // Foreign Keys
-    public int TicketId { get; set; }
+    public Guid TicketId { get; set; }
 
     public string UploadedById { get; set; } = string.Empty;
 
