@@ -113,6 +113,9 @@ builder.Services.AddScoped<IPriorityService, PriorityService>();
 builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<ITicketCommentService, TicketCommentService>();
 
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<ITicketAttachmentService, TicketAttachmentService>();
+
 var app = builder.Build();
 
 // HTTP Request Pipeline

@@ -1,83 +1,66 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using HelpDeskSystem.DTOs.TicketAttachments;
+using HelpDeskSystem.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-namespace HelpDeskSystem.Controllers
+namespace HelpDeskSystem.Controllers;
+
+[ApiController]
+[Route("api/tickets/{ticketId:guid}/attachments")]
+[Authorize]
+public sealed class TicketAttachmentsController : ControllerBase
 {
-    public class TicketAttachmentsController : Controller
+    private readonly ITicketAttachmentService _ticketAttachmentService;
+
+    public TicketAttachmentsController(ITicketAttachmentService ticketAttachmentService)
     {
-        // GET: TicketAttachmentsController
-        public ActionResult Index()
-        {
-            return View();
-        }
+        _ticketAttachmentService = ticketAttachmentService;
+    }
 
-        // GET: TicketAttachmentsController/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
+    // GET: api/tickets/{ticketId}/attachments
+    [HttpGet]
+    [HttpGet]
+    public async Task<IActionResult> GetByTicketId(
+        Guid ticketId,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // GET: TicketAttachmentsController/Create
-        public ActionResult Create()
-        {
-            return View();
-        }
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
 
-        // POST: TicketAttachmentsController/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+        var attachments = await _ticketAttachmentService.GetByTicketIdAsync(
+            ticketId,
+            userId,
+            cancellationToken);
 
-        // GET: TicketAttachmentsController/Edit/5
-        public ActionResult Edit(int id)
-        {
-            return View();
-        }
+        return Ok(attachments);
+    }
 
-        // POST: TicketAttachmentsController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+    // POST: api/tickets/{ticketId}/attachments
+    [HttpPost]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> Upload(
+        Guid ticketId,
+        [FromForm] CreateTicketAttachmentDto dto,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // GET: TicketAttachmentsController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
 
-        // POST: TicketAttachmentsController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+        var attachment = await _ticketAttachmentService.UploadAsync(
+            ticketId,
+            dto,
+            userId,
+            cancellationToken);
+
+        return CreatedAtAction(
+            nameof(GetByTicketId),
+            new { ticketId },
+            attachment);
     }
 }

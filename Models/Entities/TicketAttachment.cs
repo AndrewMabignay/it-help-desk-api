@@ -1,29 +1,29 @@
 ﻿namespace HelpDeskSystem.Models.Entities;
 
-public class TicketAttachment
+public sealed class TicketAttachment
 {
-    public int Id { get; set; }
+    public Guid Id { get; init; }
 
     // Foreign Keys
-    public Guid TicketId { get; set; }
+    public Guid TicketId { get; init; }
 
-    public string UploadedById { get; set; } = string.Empty;
+    public string UploadedById { get; init; } = string.Empty;
 
     // File Information
-    public string OriginalFileName { get; set; } = string.Empty;
+    public string OriginalFileName { get; init; } = string.Empty;
 
-    public string StoredFileName { get; set; } = string.Empty;
+    public string StoredFileName { get; init; } = string.Empty;
 
-    public string FilePath { get; set; } = string.Empty;
+    public string FilePath { get; init; } = string.Empty;
 
-    public string ContentType { get; set; } = string.Empty;
+    public string ContentType { get; init; } = string.Empty;
 
-    public long FileSizeBytes { get; set; }
+    public long FileSizeBytes { get; init; }
 
     // Navigation Properties
-    public Ticket Ticket { get; set; } = null!;
+    public Ticket Ticket { get; init; } = null!;
 
-    public ApplicationUser UploadedBy { get; set; } = null!;
+    public ApplicationUser UploadedBy { get; init; } = null!;
 
     // Timestamp
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
