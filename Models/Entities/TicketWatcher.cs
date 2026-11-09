@@ -1,19 +1,19 @@
 ﻿namespace HelpDeskSystem.Models.Entities;
 
-public class TicketWatcher
+public sealed class TicketWatcher
 {
-    public int Id { get; set; }
+    public Guid Id { get; init; }
 
     // Foreign Keys
-    public Guid TicketId { get; set; }
+    public Guid TicketId { get; init; }
 
-    public string UserId { get; set; } = string.Empty;
+    public string UserId { get; init; } = string.Empty;
 
     // Navigation Properties
-    public Ticket Ticket { get; set; } = null!;
+    public Ticket Ticket { get; init; } = null!;
 
-    public ApplicationUser User { get; set; } = null!;
+    public ApplicationUser User { get; init; } = null!;
 
     // Timestamp
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }

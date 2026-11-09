@@ -115,6 +115,7 @@ builder.Services.AddScoped<ITicketCommentService, TicketCommentService>();
 
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<ITicketAttachmentService, TicketAttachmentService>();
+builder.Services.AddScoped<ITicketWatcherService, TicketWatcherService>();
 
 var app = builder.Build();
 
