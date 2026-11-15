@@ -4,7 +4,7 @@ namespace HelpDeskSystem.Models.Entities;
 
 public class TicketStatusHistory
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     // Foreign Keys
     public Guid TicketId { get; set; }

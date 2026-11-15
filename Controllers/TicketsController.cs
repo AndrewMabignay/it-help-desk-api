@@ -170,9 +170,15 @@ public sealed class TicketsController : ControllerBase
         [FromBody] UpdateTicketStatusRequestDto request,
         CancellationToken cancellationToken)
     {
+        var changedById = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(changedById))
+            return Unauthorized();
+
         var updated = await _ticketService.UpdateStatusAsync(
-            id, 
+            id,
             request,
+            changedById,
             cancellationToken);
 
         if (!updated)

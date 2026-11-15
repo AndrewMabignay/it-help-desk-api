@@ -116,6 +116,17 @@ builder.Services.AddScoped<ITicketCommentService, TicketCommentService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<ITicketAttachmentService, TicketAttachmentService>();
 builder.Services.AddScoped<ITicketWatcherService, TicketWatcherService>();
+builder.Services.AddScoped<ITicketStatusHistoryService, TicketStatusHistoryService>();
+
+builder.Services.AddCors(options => {
+    options.AddPolicy("AngularClient", policy => 
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
 
@@ -127,6 +138,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("AngularClient");
 
 app.UseAuthentication();
 app.UseAuthorization();

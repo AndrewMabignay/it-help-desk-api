@@ -8,4 +8,7 @@ public sealed class UpdateTicketStatusRequestDto
     [Required]
     [EnumDataType(typeof(TicketStatus))]
     public TicketStatus Status { get; init; }
+
+    [MaxLength(500)]
+    public string? Remarks { get; init; }
 }

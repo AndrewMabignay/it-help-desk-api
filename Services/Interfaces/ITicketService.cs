@@ -37,5 +37,6 @@ public interface ITicketService
     Task<bool> UpdateStatusAsync(
         Guid id,
         UpdateTicketStatusRequestDto request,
+        string changedById,
         CancellationToken cancellationToken);
 }

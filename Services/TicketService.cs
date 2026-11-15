@@ -286,6 +286,7 @@ public sealed class TicketService : ITicketService
     public async Task<bool> UpdateStatusAsync(
         Guid id,
         UpdateTicketStatusRequestDto request,
+        string changedById,
         CancellationToken cancellationToken)
     {
         // Find Ticket
@@ -294,6 +295,9 @@ public sealed class TicketService : ITicketService
 
         if (ticket == null)
             return false;
+
+        // Get Current Status
+        var oldStatus = ticket.Status;
 
         // Validate Status Transition
         var isValidTransition = (ticket.Status, request.Status) switch
@@ -306,6 +310,8 @@ public sealed class TicketService : ITicketService
 
         if (!isValidTransition)
             throw new InvalidOperationException($"Cannot change ticket status from {ticket.Status} to {request.Status}.");
+
+        var now = DateTime.UtcNow;
 
         // Update Status
         ticket.Status = request.Status;
@@ -322,6 +328,20 @@ public sealed class TicketService : ITicketService
                 ticket.ClosedAt = DateTime.UtcNow;
                 break;
         }
+
+        // Create Status History
+        var history = new TicketStatusHistory
+        {
+            Id = Guid.NewGuid(),
+            TicketId = ticket.Id,
+            ChangedById = changedById,
+            OldStatus = oldStatus,
+            NewStatus = request.Status,
+            Remarks = request.Remarks,
+            ChangedAt = now
+        };
+
+        _dbContext.TicketStatusHistories.Add(history);
 
         // Save Changes
         await _dbContext.SaveChangesAsync();
