@@ -16,13 +16,16 @@ public sealed class TicketService : ITicketService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly INotificationService _notificationService;
 
     public TicketService(
         ApplicationDbContext dbContext,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        INotificationService notificationService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
+        _notificationService = notificationService;
     }
 
     // Get all tasks (server-side paginated and search)
@@ -185,6 +188,28 @@ public sealed class TicketService : ITicketService
 
         await _dbContext.SaveChangesAsync();
 
+        // Get Admin and ITStaff users
+        var admins = await _userManager.GetUsersInRoleAsync("Admin");
+        var itStaff = await _userManager.GetUsersInRoleAsync("ITStaff");
+
+        var recipients = admins
+            .Concat(itStaff)
+            .Where(u => u.IsActive && u.Id != requesterId)
+            .DistinctBy(u => u.Id)
+            .ToList();
+
+        // Notify Admin and ITStaff
+        foreach (var recipient in recipients)
+        {
+            await _notificationService.CreateAsync(
+                userId: recipient.Id,
+                ticketId: ticket.Id,
+                title: "New Ticket Created",
+                message: $"A new ticket {ticket.TicketNumber} has been submitted.",
+                type: NotificationType.TicketCreated,
+                cancellationToken: cancellationToken);
+        }
+
         return ticket.ToResponseDto();
     }
 
@@ -280,6 +305,15 @@ public sealed class TicketService : ITicketService
         // Save Changes
         await _dbContext.SaveChangesAsync();
 
+        // Create Notification
+        await _notificationService.CreateAsync(
+            userId: assignedUser.Id,
+            ticketId: ticket.Id,
+            title: "New Ticket Assigned",
+            message: $"You have been assigned to ticket {ticket.TicketNumber}: {ticket.Subject}.",
+            type: NotificationType.TicketAssigned,
+            cancellationToken: cancellationToken);
+
         return true;
     }
 
@@ -345,6 +379,15 @@ public sealed class TicketService : ITicketService
 
         // Save Changes
         await _dbContext.SaveChangesAsync();
+
+        // Create Notification
+        await _notificationService.CreateAsync(
+            userId: ticket.RequesterId,
+            ticketId: ticket.Id,
+            title: "Ticket Status Updated",
+            message: $"Your ticket status has been changed from {oldStatus} to {ticket.Status}.",
+            type: NotificationType.TicketStatusChanged,
+            cancellationToken: cancellationToken);
 
         return true;
     }

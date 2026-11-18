@@ -29,12 +29,25 @@ public sealed class TicketWatchersController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var watchers = await _watcherService.GetByTicketIdAsync(
-            ticketId,
-            userId,
-            cancellationToken);
+        try
+        {
+            var watchers = await _watcherService.GetByTicketIdAsync(
+                ticketId,
+                userId,
+                cancellationToken);
 
-        return Ok(watchers);
+            return Ok(watchers);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                new { message = ex.Message });
+        }
     }
 
     // POST: api/tickets/{ticketId}/watchers
@@ -49,16 +62,33 @@ public sealed class TicketWatchersController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var watcher = await _watcherService.AddAsync(
-            ticketId,
-            dto,
-            userId,
-            cancellationToken);
+        try
+        {
+            var watcher = await _watcherService.AddAsync(
+                ticketId,
+                dto,
+                userId,
+                cancellationToken);
 
-        return CreatedAtAction(
-            nameof(GetByTicketId),
-            new { ticketId },
-            watcher);
+            return CreatedAtAction(
+                nameof(GetByTicketId),
+                new { ticketId },
+                watcher);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
     }
 
     // DELETE: api/tickets/{ticketId}/watchers/{watcherUserId}
@@ -73,12 +103,25 @@ public sealed class TicketWatchersController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        await _watcherService.RemoveAsync(
-            ticketId,
-            watcherUserId,
-            userId,
-            cancellationToken);
+        try
+        {
+            await _watcherService.RemoveAsync(
+                ticketId,
+                watcherUserId,
+                userId,
+                cancellationToken);
 
-        return NoContent();
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                new { message = ex.Message });
+        }
     }
 }

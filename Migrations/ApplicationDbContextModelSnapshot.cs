@@ -152,6 +152,54 @@ namespace HelpDeskSystem.Migrations
                     b.ToTable("Departments");
                 });
 
+            modelBuilder.Entity("HelpDeskSystem.Models.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("TicketId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("UserId", "IsRead", "CreatedAt");
+
+                    b.ToTable("Notifications", (string)null);
+                });
+
             modelBuilder.Entity("HelpDeskSystem.Models.Entities.Priority", b =>
                 {
                     b.Property<Guid>("Id")
@@ -407,13 +455,46 @@ namespace HelpDeskSystem.Migrations
                     b.ToTable("TicketComments");
                 });
 
+            modelBuilder.Entity("HelpDeskSystem.Models.Entities.TicketResolution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ResolutionDetails")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("ResolutionSummary")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ResolvedById")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResolvedById");
+
+                    b.HasIndex("TicketId")
+                        .IsUnique();
+
+                    b.ToTable("TicketResolutions", (string)null);
+                });
+
             modelBuilder.Entity("HelpDeskSystem.Models.Entities.TicketStatusHistory", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("ChangedAt")
                         .HasColumnType("datetime2");
@@ -512,42 +593,6 @@ namespace HelpDeskSystem.Migrations
                         .IsUnique();
 
                     b.ToTable("UserProfiles");
-                });
-
-            modelBuilder.Entity("HelpDeskSystem.Models.Entitiesl.TicketResolution", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ResolutionDetails")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("ResolutionSummary")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime>("ResolvedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ResolvedById")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<Guid>("TicketId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ResolvedById");
-
-                    b.HasIndex("TicketId");
-
-                    b.ToTable("TicketResolution");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -683,6 +728,24 @@ namespace HelpDeskSystem.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("HelpDeskSystem.Models.Entities.Notification", b =>
+                {
+                    b.HasOne("HelpDeskSystem.Models.Entities.Ticket", "Ticket")
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HelpDeskSystem.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ticket");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("HelpDeskSystem.Models.Entities.RefreshToken", b =>
                 {
                     b.HasOne("HelpDeskSystem.Models.ApplicationUser", "User")
@@ -800,6 +863,25 @@ namespace HelpDeskSystem.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("HelpDeskSystem.Models.Entities.TicketResolution", b =>
+                {
+                    b.HasOne("HelpDeskSystem.Models.ApplicationUser", "ResolvedBy")
+                        .WithMany()
+                        .HasForeignKey("ResolvedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HelpDeskSystem.Models.Entities.Ticket", "Ticket")
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ResolvedBy");
+
+                    b.Navigation("Ticket");
+                });
+
             modelBuilder.Entity("HelpDeskSystem.Models.Entities.TicketStatusHistory", b =>
                 {
                     b.HasOne("HelpDeskSystem.Models.ApplicationUser", "ChangedBy")
@@ -853,25 +935,6 @@ namespace HelpDeskSystem.Migrations
                     b.Navigation("Department");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("HelpDeskSystem.Models.Entitiesl.TicketResolution", b =>
-                {
-                    b.HasOne("HelpDeskSystem.Models.ApplicationUser", "ResolvedBy")
-                        .WithMany()
-                        .HasForeignKey("ResolvedById")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("HelpDeskSystem.Models.Entities.Ticket", "Ticket")
-                        .WithMany()
-                        .HasForeignKey("TicketId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ResolvedBy");
-
-                    b.Navigation("Ticket");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

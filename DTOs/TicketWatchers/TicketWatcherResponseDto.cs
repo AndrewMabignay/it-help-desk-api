@@ -2,7 +2,7 @@
 
 public sealed class TicketWatcherResponseDto
 {
-    public Guid id { get; init; }
+    public Guid Id { get; init; }
 
     public Guid TicketId { get; init; }
 

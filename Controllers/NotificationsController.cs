@@ -1,83 +1,98 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using HelpDeskSystem.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-namespace HelpDeskSystem.Controllers
+namespace HelpDeskSystem.Controllers;
+
+[ApiController]
+[Route("api/notifications")]
+[Authorize]
+public sealed class NotificationsController : ControllerBase
 {
-    public class NotificationsController : Controller
+    private readonly INotificationService _notificationService;
+
+    public NotificationsController(INotificationService notificationService)
     {
-        // GET: NotificationsController
-        public ActionResult Index()
-        {
-            return View();
-        }
+        _notificationService = notificationService;
+    }
 
-        // GET: NotificationsController/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
 
-        // GET: NotificationsController/Create
-        public ActionResult Create()
-        {
-            return View();
-        }
+    // GET: api/notifications?page=1&pageSize=10
+    [HttpGet]
+    public async Task<IActionResult> GetMyNotifications(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // POST: NotificationsController/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
 
-        // GET: NotificationsController/Edit/5
-        public ActionResult Edit(int id)
-        {
-            return View();
-        }
+        var notifications = await _notificationService.GetMyNotificationsAsync(
+            userId,
+            page,
+            pageSize,
+            cancellationToken);
 
-        // POST: NotificationsController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+        return Ok(notifications);
+    }
 
-        // GET: NotificationsController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
+    // GET: api/notifications/unread-count
+    [HttpGet("unread-count")]
+    public async Task<IActionResult> GetUnreadCount(
+        CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // POST: NotificationsController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var count = await _notificationService.GetUnreadCountAsync(
+            userId,
+            cancellationToken);
+
+        return Ok(new { unreadCount = count });
+    }
+
+    // PATCH: api/notifications/{notificationId}/read
+    [HttpPatch("{notificationId:guid}/read")]
+    public async Task<IActionResult> MarkAsRead(
+        Guid notificationId,
+        CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var success = await _notificationService.MarkAsReadAsync(
+            notificationId,
+            userId,
+            cancellationToken);
+
+        if (!success)
+            return NotFound(new { message = "Notification not found." });
+
+        return NoContent();
+    }
+
+    // PATCH: api/notifications/read-all
+    [HttpPatch("read-all")]
+    public async Task<IActionResult> MarkAllAsRead(
+        CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var updatedCount = await _notificationService.MarkAllAsReadAsync(
+            userId,
+            cancellationToken);
+
+        return Ok(new { updatedCount });
     }
 }

@@ -68,6 +68,26 @@ public sealed class CategoryService : ICategoryService
         };
     }
 
+    // Get category statistics
+    public async Task<CategoryStatisticsResponseDto> GetStatisticsAsync(CancellationToken cancellationToken)
+    {
+        var query = _dbContext.Categories.AsNoTracking();
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var activeCount = await query
+            .CountAsync(category => category.IsActive, cancellationToken);
+
+        var inactiveCount = totalCount - activeCount;
+
+        return new CategoryStatisticsResponseDto
+        {
+            TotalCount = totalCount,
+            ActiveCount = activeCount,
+            InactiveCount = inactiveCount
+        };
+    }
+
     // Get category by ID
     public async Task<CategoryResponseDto?> GetByIdAsync(
         Guid id,

@@ -102,7 +102,7 @@ public class UsersService : IUsersService
         };
     }
 
-    public async Task<UserResponseDto> CreateAsynch(
+    public async Task<UserResponseDto?> CreateAsynch(
         CreateUserRequestDto request,
         CancellationToken cancellationToken) 
     {

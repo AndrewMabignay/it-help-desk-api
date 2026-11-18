@@ -12,6 +12,9 @@ public interface ICategoryService
         bool includeInactive,
         CancellationToken cancellationToken);
 
+    Task<CategoryStatisticsResponseDto> GetStatisticsAsync(
+        CancellationToken cancellationToken);
+
     Task<CategoryResponseDto?> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken);

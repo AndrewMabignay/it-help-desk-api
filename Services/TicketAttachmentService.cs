@@ -49,18 +49,28 @@ public sealed class TicketAttachmentService : ITicketAttachmentService
         if (user is null)
             throw new UnauthorizedAccessException("User not found.");
 
+        var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+        var isITStaff = await _userManager.IsInRoleAsync(user, "ITStaff");
         var isEmployee = await _userManager.IsInRoleAsync(user, "Employee");
 
-        if (isEmployee && ticket.RequesterId != userId)
-            throw new UnauthorizedAccessException("You cannot access this ticket.");
+        if (!isAdmin && !isITStaff && !isEmployee)
+            throw new UnauthorizedAccessException(
+                "You are not authorized to view attachments.");
 
-        return await _dbContext.TicketAttachments
+        if (isEmployee && ticket.RequesterId != userId)
+            throw new UnauthorizedAccessException(
+                "You can only view attachments on your own tickets.");
+
+        var attachments = await _dbContext.TicketAttachments
             .AsNoTracking()
             .Include(a => a.UploadedBy)
             .Where(a => a.TicketId == ticketId)
             .OrderByDescending(a => a.UploadedAt)
-            .Select(a => a.ToResponseDto())
             .ToListAsync(cancellationToken);
+
+        return attachments
+            .Select(a => a.ToResponseDto())
+            .ToList();
     }
 
     public async Task<TicketAttachmentResponseDto> UploadAsync(
@@ -80,10 +90,17 @@ public sealed class TicketAttachmentService : ITicketAttachmentService
         if (user is null)
             throw new UnauthorizedAccessException("User not found.");
 
+        var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+        var isITStaff = await _userManager.IsInRoleAsync(user, "ITStaff");
         var isEmployee = await _userManager.IsInRoleAsync(user, "Employee");
 
+        if (!isAdmin && !isITStaff && !isEmployee)
+            throw new UnauthorizedAccessException(
+                "You are not authorized to upload attachments.");
+
         if (isEmployee && ticket.RequesterId != userId)
-            throw new UnauthorizedAccessException("You cannot upload to this ticket.");
+            throw new UnauthorizedAccessException(
+                "You can only upload attachments to your own tickets.");
 
         var file = dto.File;
 
@@ -97,6 +114,17 @@ public sealed class TicketAttachmentService : ITicketAttachmentService
 
         if (!AllowedExtensions.Contains(extension))
             throw new ArgumentException("File type is not allowed.");
+
+        var isValidFile = await HasValidFileSignatureAsync(
+            file,
+            extension,
+            cancellationToken);
+
+        if (!isValidFile)
+        {
+            throw new ArgumentException(
+                "The uploaded file content does not match its extension.");
+        }
 
         var filePath = await _fileStorage.UploadAsync(
             file,
@@ -133,5 +161,121 @@ public sealed class TicketAttachmentService : ITicketAttachmentService
             await _fileStorage.DeleteAsync(filePath, CancellationToken.None);
             throw;
         }
+    }
+
+    public async Task<TicketAttachmentDownloadDto> DownloadAsync(
+        Guid ticketId,
+        Guid attachmentId,
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        // Check if ticket exists
+        var ticket = await _dbContext.Tickets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                t => t.Id == ticketId,
+                cancellationToken);
+
+        if (ticket is null)
+        {
+            throw new KeyNotFoundException("Ticket not found.");
+        }
+
+        // Check if user exists
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            throw new UnauthorizedAccessException("User not found.");
+        }
+
+        // Check user roles
+        var roles = await _userManager.GetRolesAsync(user);
+
+        var isAdmin = roles.Contains("Admin");
+        var isITStaff = roles.Contains("ITStaff");
+        var isEmployee = roles.Contains("Employee");
+
+        if (!isAdmin && !isITStaff && !isEmployee)
+        {
+            throw new UnauthorizedAccessException(
+                "You are not allowed to download attachments.");
+        }
+
+        // Employees can only access their own ticket attachments
+        if (isEmployee && ticket.RequesterId != userId)
+        {
+            throw new UnauthorizedAccessException(
+                "You can only download attachments from your own tickets.");
+        }
+
+        // Find attachment belonging to the specified ticket
+        var attachment = await _dbContext.TicketAttachments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                a => a.Id == attachmentId && a.TicketId == ticketId,
+                cancellationToken);
+
+        if (attachment is null)
+        {
+            throw new KeyNotFoundException("Attachment not found.");
+        }
+
+        // Open file stream
+        var stream = await _fileStorage.OpenReadAsync(
+            attachment.FilePath,
+            cancellationToken);
+
+        return new TicketAttachmentDownloadDto
+        {
+            Content = stream,
+            FileName = Path.GetFileName(attachment.OriginalFileName),
+            ContentType = "application/octet-stream"
+        };
+    }
+
+    private static async Task<bool> HasValidFileSignatureAsync(
+        IFormFile file,
+        string extension,
+        CancellationToken cancellationToken)
+    {
+        var signatures = new Dictionary<string, byte[][]>
+        {
+            [".jpg"] =
+            [
+                [0xFF, 0xD8, 0xFF]
+            ],
+            [".jpeg"] =
+            [
+                [0xFF, 0xD8, 0xFF]
+            ],
+            [".png"] =
+            [
+                [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+            ],
+            [".pdf"] =
+            [
+                [0x25, 0x50, 0x44, 0x46, 0x2D]
+            ]
+        };
+
+        // Signature validation for formats with known signatures.
+        if (!signatures.TryGetValue(extension, out var expectedSignatures))
+        {
+            // DOC, DOCX, and TXT require additional format-specific validation.
+            return extension is ".doc" or ".docx" or ".txt";
+        }
+
+        var header = new byte[expectedSignatures.Max(s => s.Length)];
+
+        await using var stream = file.OpenReadStream();
+
+        var bytesRead = await stream.ReadAsync(
+            header.AsMemory(0, header.Length),
+            cancellationToken);
+
+        return expectedSignatures.Any(signature =>
+            bytesRead >= signature.Length &&
+            header.AsSpan(0, signature.Length).SequenceEqual(signature));
     }
 }

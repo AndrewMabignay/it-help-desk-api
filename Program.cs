@@ -117,6 +117,8 @@ builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<ITicketAttachmentService, TicketAttachmentService>();
 builder.Services.AddScoped<ITicketWatcherService, TicketWatcherService>();
 builder.Services.AddScoped<ITicketStatusHistoryService, TicketStatusHistoryService>();
+builder.Services.AddScoped<ITicketResolutionService, TicketResolutionService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddCors(options => {
     options.AddPolicy("AngularClient", policy => 

@@ -36,6 +36,17 @@ public sealed class CategoriesController : ControllerBase
         return Ok(categories);
     }
 
+    // GET: api/categories/statistics
+    [HttpGet("statistics")]
+    public async Task<IActionResult> GetStatistics(CancellationToken cancellationToken)
+    {
+        var statistics = await _categoriesService.GetStatisticsAsync(
+            cancellationToken
+        );
+
+        return Ok(statistics);
+    }
+
     // GET: api/categories/{id}
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(

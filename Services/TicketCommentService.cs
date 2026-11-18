@@ -3,6 +3,7 @@ using HelpDeskSystem.DTOs.TicketComments;
 using HelpDeskSystem.Mappings;
 using HelpDeskSystem.Models;
 using HelpDeskSystem.Models.Entities;
+using HelpDeskSystem.Models.Enums;
 using HelpDeskSystem.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -13,13 +14,16 @@ public sealed class TicketCommentService : ITicketCommentService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly INotificationService _notificationService;
 
     public TicketCommentService(
         ApplicationDbContext dbContext,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        INotificationService notificationService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
+        _notificationService = notificationService;
     }
 
     public async Task<IEnumerable<TicketCommentResponseDto>> GetByTicketIdAsync(
@@ -105,6 +109,26 @@ public sealed class TicketCommentService : ITicketCommentService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         comment.User = user;
+
+        // Notify the other party when a public comment is added
+        if (!request.IsInternal)
+        {
+            var recipientId = userId == ticket.RequesterId
+                ? ticket.AssignedToId
+                : ticket.RequesterId;
+
+            if (!string.IsNullOrWhiteSpace(recipientId) &&
+                recipientId != userId)
+            {
+                await _notificationService.CreateAsync(
+                    userId: recipientId,
+                    ticketId: ticket.Id,
+                    title: "New Ticket Comment",
+                    message: $"A new comment was added to ticket {ticket.TicketNumber}.",
+                    type: NotificationType.NewComment,
+                    cancellationToken: cancellationToken);
+            }
+        }
 
         return comment.ToResponseDto();
     }

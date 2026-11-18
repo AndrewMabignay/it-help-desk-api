@@ -66,4 +66,44 @@ public sealed class LocalFileStorageService : IFileStorageService
 
         return Task.CompletedTask;
     }
+
+    public Task<Stream> OpenReadAsync(
+        string filePath,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            throw new ArgumentException("File path is required.");
+        }
+
+        var fullPath = Path.GetFullPath(
+            Path.Combine(_storagePath, filePath));
+
+        var rootPath = Path.GetFullPath(_storagePath)
+            + Path.DirectorySeparatorChar;
+
+        if (!fullPath.StartsWith(
+            rootPath,
+            StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Invalid file path.");
+        }
+
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("Attachment file not found.");
+        }
+
+        Stream stream = new FileStream(
+            fullPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 81920,
+            useAsync: true);
+
+        return Task.FromResult(stream);
+    }
 }

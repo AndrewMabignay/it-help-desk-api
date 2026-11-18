@@ -1,10 +1,8 @@
-﻿using HelpDeskSystem.Models.Entities;
-
-namespace HelpDeskSystem.Models.Entitiesl;
+﻿namespace HelpDeskSystem.Models.Entities;
 
 public class TicketResolution
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     
     public Guid TicketId { get; set; }
     

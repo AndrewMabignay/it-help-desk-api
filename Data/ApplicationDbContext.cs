@@ -1,6 +1,5 @@
 ﻿using HelpDeskSystem.Models;
 using HelpDeskSystem.Models.Entities;
-using HelpDeskSystem.Models.Entitiesl;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,6 +35,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TicketStatusHistory> TicketStatusHistories => Set<TicketStatusHistory>();
     
     public DbSet<TicketAssignment> TicketAssignments => Set<TicketAssignment>();
+
+    public DbSet<TicketResolution> TicketResolutions => Set<TicketResolution>();
+    
+    public DbSet<Notification> Notifications => Set<Notification>();
+
+    public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
 
     // Entity Relationships
     protected override void OnModelCreating(ModelBuilder builder)
@@ -242,7 +247,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // TicketResolution Configuration
         builder.Entity<TicketResolution>(entity =>
         {
+            entity.ToTable("TicketResolutions");
+
             entity.HasKey(tr => tr.Id);
+
+            // Prevent multiple resolution records for one ticket
+            entity.HasIndex(tr => tr.TicketId)
+                .IsUnique();
 
             entity.Property(tr => tr.ResolutionSummary)
                 .HasMaxLength(200)
@@ -260,6 +271,43 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(tr => tr.ResolvedById)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Notification Configuration
+        builder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("Notifications");
+
+            entity.HasKey(n => n.Id);
+
+            entity.Property(n => n.Title)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(n => n.Message)
+                .HasMaxLength(1000)
+                .IsRequired();
+
+            entity.Property(n => n.Type)
+                .IsRequired();
+
+            entity.Property(n => n.IsRead)
+                .HasDefaultValue(false);
+
+            entity.Property(n => n.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+
+            entity.HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(n => n.Ticket)
+                .WithMany()
+                .HasForeignKey(n => n.TicketId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

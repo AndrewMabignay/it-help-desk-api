@@ -10,7 +10,7 @@ public static class TicketWatcherMapping
     {
         return new TicketWatcherResponseDto
         { 
-            id = watcher.Id,
+            Id = watcher.Id,
             TicketId = watcher.TicketId,
             UserId = watcher.UserId,
             UserName = $"{watcher.User.FirstName} {watcher.User.LastName}",
